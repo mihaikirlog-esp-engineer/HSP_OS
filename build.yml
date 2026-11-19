@@ -1,0 +1,46 @@
+name: Build HSP OS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract HSP OS source
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip
+          mkdir HSP_OS
+          unzip HSP_OS_Cloud_Build.zip -d HSP_OS
+          
+      - name: Install Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP32 core
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@3.3.5
+
+      - name: Compile HSP OS
+        run: |
+          arduino-cli compile \
+            --verbose \
+            --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi" \
+            --output-dir build \
+            HSP_OS
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: HSP-OS-ESP32-S3-build
+          path: build/*.bin
+          if-no-files-found: error
+          
